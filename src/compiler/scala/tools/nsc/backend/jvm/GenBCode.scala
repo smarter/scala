@@ -14,6 +14,7 @@ import scala.reflect.internal.util.Statistics
 
 import scala.tools.asm
 import scala.tools.asm.tree.ClassNode
+/*
 import scala.tools.nsc.backend.jvm.opt.LocalOpt
 
 /*
@@ -409,6 +410,7 @@ abstract class GenBCode extends SubComponent with BCodeSyncAndTry {
   } // end of class BCodePhase
 
 } // end of class GenBCode
+*/
 
 object GenBCode {
   def mkFlags(args: Int*) = args.foldLeft(0)(_ | _)

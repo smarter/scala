@@ -26,6 +26,7 @@ import scala.collection.{ mutable, immutable }
  *
  * Inspired from the `scalac` compiler.
  */
+/*
 abstract class ScalaPrimitives {
   val global: Global
 
@@ -407,6 +408,7 @@ abstract class ScalaPrimitives {
   }
 
 }
+*/
 
 object ScalaPrimitives {
   // Arithmetic unary operations

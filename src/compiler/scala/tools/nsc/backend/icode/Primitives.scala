@@ -10,6 +10,7 @@ package icode
 
 import java.io.PrintWriter
 
+/*
 trait Primitives { self: ICodes =>
   import Primitives._
 
@@ -59,6 +60,7 @@ trait Primitives { self: ICodes =>
   // jvm  : It should call the appropiate 'append' method on StringBuffer
   case class StringConcat(el: TypeKind) extends Primitive
 }
+*/
 
 object Primitives {
   /** This class represents a primitive operation. */

@@ -64,6 +64,7 @@ import Primitives._
  * erased types of Scala and references Symbols to refer named entities
  * in the source files.
  */
+/*
 trait Opcodes { self: ICodes =>
   import global.{Symbol, NoSymbol, Name, Constant}
   import Opcodes._
@@ -719,6 +720,7 @@ trait Opcodes { self: ICodes =>
     }
   }
 }
+*/
 
 object Opcodes{
 
