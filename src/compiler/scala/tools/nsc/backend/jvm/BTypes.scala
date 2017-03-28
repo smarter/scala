@@ -32,7 +32,7 @@ abstract class BTypes {
    * Concurrent because stack map frames are computed when in the class writer, which might run
    * on multiple classes concurrently.
    */
-  protected val classBTypeFromInternalNameMap: collection.concurrent.Map[String, ClassBType]
+  protected lazy val classBTypeFromInternalNameMap: collection.concurrent.Map[String, ClassBType]
 
   /**
    * The string represented by the `offset` / `length` values of a ClassBType, see comment of that
