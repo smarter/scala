@@ -105,7 +105,7 @@ trait ContextErrors {
 
     def issueTypeError(err: AbsTypeError)(implicit context: Context) { context.issue(err) }
 
-    def typeErrorMsg(found: Type, req: Type) = "type mismatch" + foundReqMsg(found, req)
+    def typeErrorMsg(found: Type, req: Type) = "type mismatch"// + foundReqMsg(found, req)
   }
 
   def notAnyRefMessage(found: Type): String = {
