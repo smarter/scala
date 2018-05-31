@@ -5,9 +5,9 @@ package collection
 import scala.annotation.unchecked.uncheckedVariance
 import scala.language.higherKinds
 
-trait StrictOptimizedSortedSetOps[A, +CC[X] <: SortedSet[X], +C <: SortedSetOps[A, CC, C]]
-  extends SortedSetOps[A, CC, C]
-    with StrictOptimizedIterableOps[A, Set, C] {
+trait StrictOptimizedSortedSetOps[A, +UnsortedCC[X] <: Set[X], +CC[X] <: UnsortedCC[X] with SortedSet[X], +C <: SortedSetOps[A, UnsortedCC, CC, C]]
+  extends SortedSetOps[A, UnsortedCC, CC, C]
+    with StrictOptimizedIterableOps[A, UnsortedCC, C] {
 
   override def map[B : Ordering](f: A => B): CC[B] = {
     val b = sortedIterableFactory.newBuilder[B]

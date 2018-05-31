@@ -19,7 +19,7 @@ import java.lang.System.arraycopy
   *  @define Coll `immutable.ChampHashSet`
   *  @define coll immutable champ hash set
   */
-final class ChampHashSet[A] private[immutable] (val rootNode: SetNode[A], val cachedJavaHashCode: Int, val cachedSize: Int)
+final class ChampHashSet[+A] private[immutable] (val rootNode: SetNode[A], val cachedJavaHashCode: Int, val cachedSize: Int)
   extends AbstractSet[A]
     with SetOps[A, ChampHashSet, ChampHashSet[A]]
     with StrictOptimizedIterableOps[A, ChampHashSet, ChampHashSet[A]] {
@@ -36,10 +36,10 @@ final class ChampHashSet[A] private[immutable] (val rootNode: SetNode[A], val ca
 
   protected[immutable] def reverseIterator: Iterator[A] = new SetReverseIterator[A](rootNode)
 
-  def contains(element: A): Boolean = rootNode.contains(element, computeHash(element), 0)
+  def contains[A1 >: A](element: A1): Boolean = rootNode.contains(element, computeHash(element), 0)
 
-  def incl(element: A): ChampHashSet[A] = {
-    val effect = SetEffect[A]()
+  def incl[A1 >: A](element: A1): ChampHashSet[A1] = {
+    val effect = SetEffect[A1]()
     val elementHash = computeHash(element)
     val newRootNode = rootNode.updated(element, elementHash, 0, effect)
 
@@ -48,8 +48,8 @@ final class ChampHashSet[A] private[immutable] (val rootNode: SetNode[A], val ca
     else this
   }
 
-  def excl(element: A): ChampHashSet[A] = {
-    val effect = SetEffect[A]()
+  def excl[A1 >: A](element: A1): ChampHashSet[A] = {
+    val effect = SetEffect[A1]()
     val elementHash = computeHash(element)
     val newRootNode = rootNode.removed(element, elementHash, 0, effect)
 
@@ -68,8 +68,8 @@ final class ChampHashSet[A] private[immutable] (val rootNode: SetNode[A], val ca
 
   override def foreach[U](f: A => U): Unit = rootNode.foreach(f)
 
-  def subsetOf(that: Set[A]): Boolean = if (that.isEmpty) true else that match {
-    case set: ChampHashSet[A] => rootNode.subsetOf(set.rootNode, 0)
+  def subsetOf[A1 >: A](that: Set[A1]): Boolean = if (that.isEmpty) true else that match {
+    case set: ChampHashSet[A1] => rootNode.subsetOf(set.rootNode, 0)
     case _ => super.subsetOf(that)
   }
 
@@ -96,13 +96,13 @@ private[immutable] final object SetNode {
 
 }
 
-private[immutable] sealed abstract class SetNode[A] extends Node[SetNode[A]] {
+private[immutable] sealed abstract class SetNode[+A] extends Node[SetNode[A]] {
 
-  def contains(element: A, hash: Int, shift: Int): Boolean
+  def contains[A1 >: A](element: A1, hash: Int, shift: Int): Boolean
 
-  def updated(element: A, hash: Int, shift: Int, effect: SetEffect[A]): SetNode[A]
+  def updated[A1 >: A](element: A1, hash: Int, shift: Int, effect: SetEffect[A1]): SetNode[A1]
 
-  def removed(element: A, hash: Int, shift: Int, effect: SetEffect[A]): SetNode[A]
+  def removed[A1 >: A](element: A1, hash: Int, shift: Int, effect: SetEffect[A1]): SetNode[A]
 
   def hasNodes: Boolean
 
@@ -120,11 +120,11 @@ private[immutable] sealed abstract class SetNode[A] extends Node[SetNode[A]] {
 
   def foreach[U](f: A => U): Unit
 
-  def subsetOf(that: SetNode[A], shift: Int): Boolean
+  def subsetOf[A1 >: A](that: SetNode[A1], shift: Int): Boolean
 
 }
 
-private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, val content: Array[Any]) extends SetNode[A] {
+private final class BitmapIndexedSetNode[+A](val dataMap: Int, val nodeMap: Int, val content: Array[Any]) extends SetNode[A] {
 
   import Node._
   import SetNode._
@@ -153,7 +153,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
   def getNode(index: Int) =
     content(content.length - 1 - index).asInstanceOf[SetNode[A]]
 
-  def contains(element: A, elementHash: Int, shift: Int): Boolean = {
+  def contains[A1 >: A](element: A1, elementHash: Int, shift: Int): Boolean = {
     val mask = maskFrom(elementHash, shift)
     val bitpos = bitposFrom(mask)
 
@@ -170,7 +170,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     false
   }
 
-  def updated(element: A, elementHash: Int, shift: Int, effect: SetEffect[A]): SetNode[A] = {
+  def updated[A1 >: A](element: A1, elementHash: Int, shift: Int, effect: SetEffect[A1]): SetNode[A1] = {
     val mask = maskFrom(elementHash, shift)
     val bitpos = bitposFrom(mask)
 
@@ -203,7 +203,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     copyAndInsertValue(bitpos, element)
   }
 
-  def removed(element: A, elementHash: Int, shift: Int, effect: SetEffect[A]): SetNode[A] = {
+  def removed[A1 >: A](element: A1, elementHash: Int, shift: Int, effect: SetEffect[A1]): SetNode[A] = {
     val mask = maskFrom(elementHash, shift)
     val bitpos = bitposFrom(mask)
 
@@ -301,7 +301,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
 
   def nodeIndex(bitpos: Int) = bitCount(nodeMap & (bitpos - 1))
 
-  def copyAndSetNode(bitpos: Int, newNode: SetNode[A]) = {
+  def copyAndSetNode[A1 >: A](bitpos: Int, newNode: SetNode[A1]) = {
     val idx = this.content.length - 1 - this.nodeIndex(bitpos)
 
     val src = this.content
@@ -310,10 +310,10 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     // copy 'src' and set 1 element(s) at position 'idx'
     arraycopy(src, 0, dst, 0, src.length)
     dst(idx) = newNode
-    new BitmapIndexedSetNode[A](dataMap, nodeMap, dst)
+    new BitmapIndexedSetNode[A1](dataMap, nodeMap, dst)
   }
 
-  def copyAndInsertValue(bitpos: Int, key: A) = {
+  def copyAndInsertValue[A1 >: A](bitpos: Int, key: A1) = {
     val idx = TupleLength * dataIndex(bitpos)
 
     val src = this.content
@@ -324,7 +324,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     dst(idx) = key
     arraycopy(src, idx, dst, idx + 1, src.length - idx)
 
-    new BitmapIndexedSetNode[A](dataMap | bitpos, nodeMap, dst)
+    new BitmapIndexedSetNode[A1](dataMap | bitpos, nodeMap, dst)
   }
 
   def copyAndRemoveValue(bitpos: Int) = {
@@ -340,7 +340,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     new BitmapIndexedSetNode[A](dataMap ^ bitpos, nodeMap, dst)
   }
 
-  def copyAndMigrateFromInlineToNode(bitpos: Int, node: SetNode[A]) = {
+  def copyAndMigrateFromInlineToNode[A1 >: A](bitpos: Int, node: SetNode[A1]) = {
     val idxOld = TupleLength * dataIndex(bitpos)
     val idxNew = this.content.length - TupleLength - nodeIndex(bitpos)
 
@@ -355,10 +355,10 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     dst(idxNew) = node
     arraycopy(src, idxNew + 1, dst, idxNew + 1, src.length - idxNew - 1)
 
-    new BitmapIndexedSetNode[A](dataMap ^ bitpos, nodeMap | bitpos, dst)
+    new BitmapIndexedSetNode[A1](dataMap ^ bitpos, nodeMap | bitpos, dst)
   }
 
-  def copyAndMigrateFromNodeToInline(bitpos: Int, node: SetNode[A]) = {
+  def copyAndMigrateFromNodeToInline[A1 >: A](bitpos: Int, node: SetNode[A1]) = {
     val idxOld = this.content.length - 1 - nodeIndex(bitpos)
     val idxNew = TupleLength * dataIndex(bitpos)
 
@@ -390,7 +390,7 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
     }
   }
 
-  def subsetOf(that: SetNode[A], shift: Int): Boolean = if (this eq that) true else that match {
+  def subsetOf[A1 >: A](that: SetNode[A1], shift: Int): Boolean = if (this eq that) true else that match {
     case node: HashCollisionSetNode[A] => false
     case node: BitmapIndexedSetNode[A] => {
       val thisBitmap = this.dataMap | this.nodeMap
@@ -465,22 +465,22 @@ private final class BitmapIndexedSetNode[A](val dataMap: Int, val nodeMap: Int, 
 
 }
 
-private final class HashCollisionSetNode[A](val hash: Int, val content: Vector[A]) extends SetNode[A] {
+private final class HashCollisionSetNode[+A](val hash: Int, val content: Vector[A]) extends SetNode[A] {
 
   import Node._
   import SetNode._
 
   require(content.size >= 2)
 
-  def contains(element: A, hash: Int, shift: Int): Boolean =
+  def contains[A1 >: A](element: A1, hash: Int, shift: Int): Boolean =
     this.hash == hash && content.contains(element)
 
-  def updated(element: A, hash: Int, shift: Int, effect: SetEffect[A]): SetNode[A] =
+  def updated[A1 >: A](element: A1, hash: Int, shift: Int, effect: SetEffect[A1]): SetNode[A1] =
     if (this.contains(element, hash, shift)) {
       this
     } else {
       effect.setModified
-      new HashCollisionSetNode[A](hash, content.appended(element))
+      new HashCollisionSetNode[A1](hash, content.appended(element))
     }
 
   /**
@@ -490,7 +490,7 @@ private final class HashCollisionSetNode[A](val hash: Int, val content: Vector[A
     * singleton element and a hash-prefix for trie level 0. This node will be then a) either become
     * the new root, or b) unwrapped and inlined deeper in the trie.
     */
-  def removed(element: A, hash: Int, shift: Int, effect: SetEffect[A]): SetNode[A] =
+  def removed[A1 >: A](element: A1, hash: Int, shift: Int, effect: SetEffect[A1]): SetNode[A] =
     if (!this.contains(element, hash, shift)) {
       this
     } else {
@@ -521,7 +521,7 @@ private final class HashCollisionSetNode[A](val hash: Int, val content: Vector[A
 
   def foreach[U](f: A => U): Unit = content.foreach(f)
 
-  def subsetOf(that: SetNode[A], shift: Int): Boolean = if (this eq that) true else that match {
+  def subsetOf[A1 >: A](that: SetNode[A1], shift: Int): Boolean = if (this eq that) true else that match {
     case node: BitmapIndexedSetNode[A] => false
     case node: HashCollisionSetNode[A] => {
       this.payloadArity <= node.payloadArity && this.content.forall(node.content.contains)

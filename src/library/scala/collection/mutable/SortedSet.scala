@@ -21,7 +21,7 @@ trait SortedSet[A]
   */
 trait SortedSetOps[A, +CC[X] <: SortedSet[X], +C <: SortedSetOps[A, CC, C]]
   extends SetOps[A, Set, C]
-    with collection.SortedSetOps[A, CC, C]
+    with collection.SortedSetOps[A, Set, CC, C]
 
 /**
   * $factoryInfo

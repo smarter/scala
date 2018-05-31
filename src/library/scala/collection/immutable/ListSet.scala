@@ -6,6 +6,7 @@ import java.io.{ObjectInputStream, ObjectOutputStream}
 
 import mutable.{Builder, ImmutableBuilder}
 import scala.annotation.tailrec
+import scala.annotation.unchecked.uncheckedVariance
 
 /**
   * This class implements immutable sets using a list-based data structure. List set iterators and
@@ -28,7 +29,7 @@ import scala.annotation.tailrec
   * @define mayNotTerminateInf
   * @define willNotTerminateInf
   */
-sealed class ListSet[A]
+sealed class ListSet[+A]
   extends AbstractSet[A]
     with SetOps[A, ListSet, ListSet[A]]
     with StrictOptimizedIterableOps[A, ListSet, ListSet[A]] {
@@ -38,10 +39,10 @@ sealed class ListSet[A]
   override def size: Int = 0
   override def isEmpty: Boolean = true
 
-  def contains(elem: A): Boolean = false
+  def contains[A1 >: A](elem: A1): Boolean = false
 
-  def incl(elem: A): ListSet[A] = new Node(elem)
-  def excl(elem: A): ListSet[A] = this
+  def incl[A1 >: A](elem: A1): ListSet[A1] = new Node(elem)
+  def excl[A1 >: A](elem: A1): ListSet[A] = this
 
   def iterator: scala.collection.Iterator[A] = {
     var curr: ListSet[A] = this
@@ -61,35 +62,35 @@ sealed class ListSet[A]
   /**
     * Represents an entry in the `ListSet`.
     */
-  protected class Node(override protected val elem: A) extends ListSet[A] {
+  protected class Node[+A1 >: A](override protected val elem: A1) extends ListSet[A1] {
 
     override def size = sizeInternal(this, 0)
 
-    @tailrec private[this] def sizeInternal(n: ListSet[A], acc: Int): Int =
+    @tailrec private[this] def sizeInternal(n: ListSet[A1 @uncheckedVariance], acc: Int): Int =
       if (n.isEmpty) acc
       else sizeInternal(n.next, acc + 1)
 
     override def isEmpty: Boolean = false
 
-    override def contains(e: A) = containsInternal(this, e)
+    override def contains[A2 >: A1](e: A2) = containsInternal(this, e)
 
-    @tailrec private[this] def containsInternal(n: ListSet[A], e: A): Boolean =
+    @tailrec private[this] def containsInternal[A2 >: A1](n: ListSet[A1 @uncheckedVariance], e: A2): Boolean =
       !n.isEmpty && (n.elem == e || containsInternal(n.next, e))
 
-    override def incl(e: A): ListSet[A] = if (contains(e)) this else new Node(e)
+    override def incl[A2 >: A1](e: A2): ListSet[A2] = if (contains(e)) this else new Node(e)
 
-    override def excl(e: A): ListSet[A] = removeInternal(e, this, Nil)
+    override def excl[A2 >: A1](e: A2): ListSet[A1] = removeInternal(e, this, Nil)
 
-    @tailrec private[this] def removeInternal(k: A, cur: ListSet[A], acc: List[ListSet[A]]): ListSet[A] =
+    @tailrec private[this] def removeInternal[A2 >: A1](k: A2, cur: ListSet[A1 @uncheckedVariance], acc: List[ListSet[A1 @uncheckedVariance]]): ListSet[A1] =
       if (cur.isEmpty) acc.last
       else if (k == cur.elem) acc.foldLeft(cur.next)((t, h) => new t.Node(h.elem))
       else removeInternal(k, cur.next, cur :: acc)
 
-    override protected def next: ListSet[A] = ListSet.this
+    override protected def next: ListSet[A1] = ListSet.this
 
-    override def last: A = elem
+    override def last: A1 = elem
 
-    override def init: ListSet[A] = next
+    override def init: ListSet[A1] = next
   }
 }
 

@@ -5,7 +5,7 @@ import scala.collection.generic.DefaultSerializationProxy
 import scala.language.higherKinds
 
 /** Base type of sorted sets */
-trait SortedSet[A] extends Set[A] with SortedSetOps[A, SortedSet, SortedSet[A]] {
+trait SortedSet[A] extends Set[A] with SortedSetOps[A, Set, SortedSet, SortedSet[A]] {
   def unsorted: Set[A] = this
 
   override protected def fromSpecificIterable(coll: Iterable[A] @uncheckedVariance): SortedIterableCC[A] @uncheckedVariance = sortedIterableFactory.from(coll)
@@ -26,8 +26,8 @@ trait SortedSet[A] extends Set[A] with SortedSetOps[A, SortedSet, SortedSet[A]] 
   override protected[this] def writeReplace(): AnyRef = new DefaultSerializationProxy(sortedIterableFactory.evidenceIterableFactory[A], this)
 }
 
-trait SortedSetOps[A, +CC[X] <: SortedSet[X], +C <: SortedSetOps[A, CC, C]]
-  extends SetOps[A, Set, C]
+trait SortedSetOps[A, +UnsortedCC[X] <: Set[X], +CC[X] <: UnsortedCC[X] with SortedSet[X], +C <: SortedSetOps[A, UnsortedCC, CC, C]]
+  extends SetOps[A, UnsortedCC, C]
      with SortedOps[A, C] {
 
   /**
@@ -84,7 +84,10 @@ trait SortedSetOps[A, +CC[X] <: SortedSet[X], +C <: SortedSetOps[A, CC, C]]
       rangeUntil(next)
   }
 
-  override def withFilter(p: A => Boolean): SortedSetOps.WithFilter[A, IterableCC, CC] = new SortedSetOps.WithFilter(this, p)
+  @deprecated("Consider requiring an immutable Set or fall back to Set.union", "2.13.0")
+  def + (elem: A): C = fromSpecificIterable(new View.Appended(toIterable, elem))
+
+  override def withFilter(p: A => Boolean): SortedSetOps.WithFilter[A, IterableCC, UnsortedCC, CC] = new SortedSetOps.WithFilter(this, p)
 
   /** Builds a new sorted collection by applying a function to all elements of this $coll.
     *
@@ -138,8 +141,8 @@ object SortedSetOps {
     *
     * @define coll sorted collection
     */
-  class WithFilter[+A, +IterableCC[_], +CC[X] <: SortedSet[X]](
-    self: SortedSetOps[A, CC, _] with IterableOps[A, IterableCC, _],
+  class WithFilter[+A, +IterableCC[_], +UnsortedCC[X] <: Set[X], +CC[X] <: UnsortedCC[X] with SortedSet[X]](
+    self: SortedSetOps[A, UnsortedCC, CC, _] with IterableOps[A, IterableCC, _],
     p: A => Boolean
   ) extends IterableOps.WithFilter[A, IterableCC](self, p) {
 
@@ -149,8 +152,8 @@ object SortedSetOps {
     def flatMap[B : Ordering](f: A => IterableOnce[B]): CC[B] =
       self.sortedIterableFactory.from(new View.FlatMap(filtered, f))
 
-    override def withFilter(q: A => Boolean): WithFilter[A, IterableCC, CC] =
-      new WithFilter[A, IterableCC, CC](self, (a: A) => p(a) && q(a))
+    override def withFilter(q: A => Boolean): WithFilter[A, IterableCC, UnsortedCC, CC] =
+      new WithFilter[A, IterableCC, UnsortedCC, CC](self, (a: A) => p(a) && q(a))
   }
 
 }

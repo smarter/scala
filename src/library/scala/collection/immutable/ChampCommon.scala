@@ -30,7 +30,7 @@ private[immutable] final object Node {
 
 }
 
-private[immutable] trait Node[T <: Node[T]] {
+private[immutable] trait Node[+T <: Node[T]] {
 
   def hasNodes: Boolean
 

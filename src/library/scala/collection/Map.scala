@@ -140,13 +140,13 @@ trait MapOps[K, +V, +CC[_, _] <: IterableOps[_, AnyConstr, _], +C]
   /** The implementation class of the set returned by `keySet`.
     */
   protected class KeySet extends AbstractSet[K] with GenKeySet {
-    def diff(that: Set[K]): Set[K] = fromSpecificIterable(view.filterNot(that))
+    override def diff(that: Set[_ >: K]): Set[K] = fromSpecificIterable(view.filterNot(that))
   }
 
   /** A generic trait that is reused by keyset implementations */
   protected trait GenKeySet { this: Set[K] =>
     def iterator: Iterator[K] = MapOps.this.keysIterator
-    def contains(key: K): Boolean = MapOps.this.contains(key)
+    def contains[K1 >: K](key: K1): Boolean = MapOps.this.contains(key.asInstanceOf[K])
     override def size: Int = MapOps.this.size
   }
 

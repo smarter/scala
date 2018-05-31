@@ -19,7 +19,16 @@ trait SortedSet[A]
   */
 trait SortedSetOps[A, +CC[X] <: SortedSet[X], +C <: SortedSetOps[A, CC, C]]
   extends SetOps[A, Set, C]
-     with collection.SortedSetOps[A, CC, C]
+    with collection.SortedSetOps[A, Set, CC, C] {
+
+  override def incl[A1 >: A](elem: A1): Set[A1] = ??? //ChampHashSet.empty[A1] ++ toIterable + elem
+  def incl(elem: A): C
+  override def + (elem: A): C = incl(elem)
+
+  def concat(that: SortedSet[A]): C = fromSpecificIterable(new View.Concat(toIterable, that))
+  @`inline` def union(that: SortedSet[A]): C = concat(that)
+  @`inline` def | (that: SortedSet[A]): C = concat(that)
+}
 
 /**
   * $factoryInfo

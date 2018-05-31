@@ -269,6 +269,7 @@ abstract class Enumeration (initial: Int) extends Serializable {
     extends immutable.AbstractSet[Value]
       with immutable.SortedSet[Value]
       with immutable.SetOps[Value, immutable.Set, ValueSet]
+      with immutable.SortedSetOps[Value, immutable.SortedSet, ValueSet]
       with StrictOptimizedIterableOps[Value, immutable.Set, ValueSet]
       with Serializable {
 
@@ -277,9 +278,26 @@ abstract class Enumeration (initial: Int) extends Serializable {
       new ValueSet(nnIds.rangeImpl(from.map(_.id - bottomId), until.map(_.id - bottomId)))
 
     override def empty = ValueSet.empty
+
+    def contains[V1 >: Value](v: V1) = v match {
+      case v: Value => contains(v)
+      case _ => false
+    }
     def contains(v: Value) = nnIds contains (v.id - bottomId)
-    def incl (value: Value) = new ValueSet(nnIds + (value.id - bottomId))
-    def excl (value: Value) = new ValueSet(nnIds - (value.id - bottomId))
+
+    // def concat(that: ValueSet): ValueSet = fromSpecificIterable(new View.Concat(toIterable, that))
+    // @`inline` def union(that: ValueSet): ValueSet = concat(that)
+    // @`inline` def | (that: ValueSet): ValueSet = concat(that)
+
+    def incl (v: Value) = new ValueSet(nnIds + (v.id - bottomId))
+
+    def excl [V1 >: Value](v: V1) = v match {
+      case v: Value =>
+        new ValueSet(nnIds - (v.id - bottomId))
+      case _ =>
+        this
+    }
+
     def iterator = nnIds.iterator map (id => thisenum.apply(bottomId + id))
     override def iteratorFrom(start: Value) = nnIds iteratorFrom start.id  map (id => thisenum.apply(bottomId + id))
     override def className = thisenum + ".ValueSet"

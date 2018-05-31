@@ -13,7 +13,7 @@ class BuildFromTest {
       case (Some(builder), Some(a)) => Some(builder += a)
       case _ => None
     }.map(_.result())
-  def optionSequence1[CC[X] <: SortedSet[X] with SortedSetOps[X, CC, CC[X]], A : Ordering](xs: CC[Option[A]]): Option[CC[A]] =
+  def optionSequence1[CC[X] <: SortedSet[X] with SortedSetOps[X, Set, CC, CC[X]], A : Ordering](xs: CC[Option[A]]): Option[CC[A]] =
     xs.foldLeft[Option[Builder[A, CC[A]]]](Some(xs.sortedIterableFactory.newBuilder[A])) {
       case (Some(builder), Some(a)) => Some(builder += a)
       case _ => None

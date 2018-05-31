@@ -8,7 +8,7 @@ import java.lang.String
 
 /** Base trait for set collections.
   */
-trait Set[A]
+trait Set[+A]
   extends Iterable[A]
     with SetOps[A, Set, Set[A]]
     with Equals {
@@ -29,7 +29,7 @@ trait Set[A]
 
   override def iterableFactory: IterableFactory[IterableCC] = Set
 
-  def empty: IterableCC[A] = iterableFactory.empty
+  override def empty: IterableCC[A] @uncheckedVariance = iterableFactory.empty
 }
 
 /** Base trait for set operations
@@ -37,11 +37,12 @@ trait Set[A]
   * @define coll set
   * @define Coll `Set`
   */
-trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
-  extends IterableOps[A, CC, C]
-     with (A => Boolean) {
+trait SetOps[+A, +CC[_], +C <: SetOps[A, CC, C]]
+  extends IterableOps[A, CC, C] {
 
-  def contains(elem: A): Boolean
+  def contains[A1 >: A](elem: A1): Boolean
+
+  def apply[A1 >: A](elem: A1): Boolean = contains(elem)
 
   /** Tests if some element is contained in this set.
     *
@@ -49,8 +50,8 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
     *  @param elem the element to test for membership.
     *  @return  `true` if `elem` is contained in this set, `false` otherwise.
     */
-  @deprecatedOverriding("This method should be final, but is not due to scala/bug#10853", "2.13.0")
-  /*@`inline` final*/ def apply(elem: A): Boolean = this.contains(elem)
+  // @deprecatedOverriding("This method should be final, but is not due to scala/bug#10853", "2.13.0")
+  // /*@`inline` final*/ def apply(elem: A): Boolean = this.contains(elem)
 
   /** Tests whether this set is a subset of another set.
     *
@@ -58,7 +59,7 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
     *  @return     `true` if this set is a subset of `that`, i.e. if
     *              every element of this set is also an element of `that`.
     */
-  def subsetOf(that: Set[A]): Boolean = this.forall(that)
+  def subsetOf(that: Set[_ >: A]): Boolean = this.forall(that.contains)
 
   /** An iterator over all subsets of this set of the given size.
     *  If the requested size is impossible, an empty iterator is returned.
@@ -136,10 +137,10 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
     *  @return  a new set consisting of all elements that are both in this
     *  set and in the given set `that`.
     */
-  def intersect(that: Set[A]): C = this.filter(that)
+  def intersect[A1 >: A](that: Set[A1]): C = this.filter(that.contains)
 
   /** Alias for `intersect` */
-  @`inline` final def & (that: Set[A]): C = intersect(that)
+  @`inline` final def & [A1 >: A](that: Set[A1]): C = intersect(that)
 
   /** Computes the difference of this set and another set.
     *
@@ -147,19 +148,19 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
     *  @return     a set containing those elements of this
     *              set that are not also contained in the given set `that`.
     */
-  def diff(that: Set[A]): C
+  def diff(that: Set[_ >: A]): C = this.filterNot(that.contains)
 
   /** Alias for `diff` */
-  @`inline` final def &~ (that: Set[A]): C = this diff that
+  @`inline` final def &~ (that: Set[_ >: A]): C = this diff that
 
   @deprecated("Use &~ or diff instead of --", "2.13.0")
-  @`inline` final def -- (that: Set[A]): C = diff(that)
+  @`inline` final def -- (that: Set[_ >: A]): C = diff(that)
 
   @deprecated("Consider requiring an immutable Set or fall back to Set.diff", "2.13.0")
-  def - (elem: A): C = diff(Set(elem))
+  def - [A1 >: A](elem: A1): C = diff(Set(elem))
 
   @deprecated("Use &- with an explicit collection argument instead of - with varargs", "2.13.0")
-  def - (elem1: A, elem2: A, elems: A*): C = diff(elems.toSet + elem1 + elem2)
+  def - [A1 >: A](elem1: A1, elem2: A1, elems: A1*): C = diff(elems.toSet + elem1 + elem2)
 
   /** Creates a new $coll by adding all elements contained in another collection to this $coll, omitting duplicates.
     *
@@ -174,16 +175,16 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
     *  @param that     the collection containing the elements to add.
     *  @return a new $coll with the given elements added, omitting duplicates.
     */
-  def concat(that: collection.Iterable[A]): C = fromSpecificIterable(new View.Concat(toIterable, that))
+  override def concat[A1 >: A](that: collection.Iterable[A1]): CC[A1] = fromIterable(new View.Concat(toIterable, that))
 
   @deprecated("Consider requiring an immutable Set or fall back to Set.union", "2.13.0")
-  def + (elem: A): C = fromSpecificIterable(new View.Appended(toIterable, elem))
+  def + [A1 >: A](elem: A1): CC[A1] = fromIterable(new View.Appended(toIterable, elem))
 
   @deprecated("Use ++ with an explicit collection argument instead of + with varargs", "2.13.0")
-  def + (elem1: A, elem2: A, elems: A*): C = fromSpecificIterable(new View.Concat(new View.Appended(new View.Appended(toIterable, elem1), elem2), elems))
+  def + [A1 >: A](elem1: A1, elem2: A1, elems: A1*): CC[A1] = fromIterable(new View.Concat(new View.Appended(new View.Appended(toIterable, elem1), elem2), elems))
 
-  /** Alias for `concat` */
-  @`inline` final def ++ (that: collection.Iterable[A]): C = concat(that)
+  // /** Alias for `concat` */
+  // @`inline` final def ++ [A1 >: A](that: collection.Iterable[A1]): CC[A1] = concat(that)
 
   /** Computes the union between of set and another set.
     *
@@ -191,10 +192,10 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
     *  @return  a new set consisting of all elements that are in this
     *  set or in the given set `that`.
     */
-  @`inline` final def union(that: collection.Iterable[A]): C = concat(that)
+  @`inline` final def union[A1 >: A](that: collection.Iterable[A1]): CC[A1] = concat(that)
 
   /** Alias for `union` */
-  @`inline` final def | (that: collection.Iterable[A]): C = concat(that)
+  @`inline` final def | [A1 >: A](that: collection.Iterable[A1]): CC[A1] = concat(that)
 
   /** The empty set of the same type as this set
     * @return  an empty set of type `C`.
@@ -208,8 +209,10 @@ trait SetOps[A, +CC[_], +C <: SetOps[A, CC, C]]
   * @define Coll `Set`
   */
 @SerialVersionUID(3L)
-object Set extends IterableFactory.Delegate[Set](immutable.Set)
+object Set extends IterableFactory.Delegate[Set](immutable.Set) {
+  implicit def setToFunction[A](set: Set[A]): A => Boolean = set.contains
+}
 
 /** Explicit instantiation of the `Set` trait to reduce class file size in subclasses. */
 @SerialVersionUID(3L)
-abstract class AbstractSet[A] extends AbstractIterable[A] with Set[A]
+abstract class AbstractSet[+A] extends AbstractIterable[A] with Set[A]

@@ -24,7 +24,7 @@ sealed class TreeSet[A] private (tree: RB.Tree[A, Null])(implicit val ordering: 
     with SortedSet[A]
     with SortedSetOps[A, TreeSet, TreeSet[A]]
     with StrictOptimizedIterableOps[A, Set, TreeSet[A]]
-    with StrictOptimizedSortedSetOps[A, TreeSet, TreeSet[A]] {
+    with StrictOptimizedSortedSetOps[A, Set, TreeSet, TreeSet[A]] {
 
   if (ordering eq null)
     throw new NullPointerException("ordering must not be null")
@@ -54,7 +54,7 @@ sealed class TreeSet[A] private (tree: RB.Tree[A, Null])(implicit val ordering: 
 
   def clear(): Unit = RB.clear(tree)
 
-  def contains(elem: A): Boolean = RB.contains(tree, elem)
+  def contains[A1 >: A](elem: A1): Boolean = RB.contains(tree, elem.asInstanceOf[A])
 
   def get(elem: A): Option[A] = RB.getKey(tree, elem)
 
@@ -124,7 +124,7 @@ sealed class TreeSet[A] private (tree: RB.Tree[A, Null])(implicit val ordering: 
     override def rangeImpl(from: Option[A], until: Option[A]): TreeSet[A] =
       new TreeSetProjection(pickLowerBound(from), pickUpperBound(until))
 
-    override def contains(key: A) = isInsideViewBounds(key) && RB.contains(tree, key)
+    override def contains[A1 >: A](key: A1) = isInsideViewBounds(key.asInstanceOf[A]) && RB.contains(tree, key.asInstanceOf[A])
 
     override def iterator = RB.keysIterator(tree, from, until)
     override def iteratorFrom(start: A) = RB.keysIterator(tree, pickLowerBound(Some(start)), until)

@@ -64,7 +64,7 @@ object BitSet extends SpecificIterableFactory[Int, BitSet] {
 
 /** Base implementation type of bitsets */
 trait BitSetOps[+C <: BitSet with BitSetOps[C]]
-  extends SortedSetOps[Int, SortedSet, C] { self =>
+  extends SortedSetOps[Int, Set, SortedSet, C] { self =>
   import BitSetOps._
 
   def bitSetFactory: SpecificIterableFactory[Int, BitSetC]
@@ -91,6 +91,11 @@ trait BitSetOps[+C <: BitSet with BitSetOps[C]]
   /** Creates a new set of this kind from an array of longs
     */
   protected[collection] def fromBitMaskNoCopy(elems: Array[Long]): C
+
+  override def contains[A1 >: Int](elem: A1): Boolean = elem match {
+    case elem: Int => contains(elem)
+    case _ => false
+  }
 
   def contains(elem: Int): Boolean =
     0 <= elem && (word(elem >> LogWL) & (1L << elem)) != 0L
